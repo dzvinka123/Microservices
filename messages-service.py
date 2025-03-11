@@ -14,5 +14,6 @@ def get_message():
     return "not implemented yet"
 
 if __name__ == '__main__':
-    logging.info("[Messages Service] Starting on port 8002...")
+    logging.info("[Messages Service] Starting on port 8004...")
     messages_service.run(port=8004)
+

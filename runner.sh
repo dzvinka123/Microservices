@@ -22,11 +22,13 @@ $HAZELCAST_DIR/bin/hz start &
 echo "Hazelcast node 3 started."
 sleep 20
 
+PATHCONRIGFILE="config.json"
+python3 config-server.py $PATHCONRIGFILE & 
+CONFIGSERVER_PID=$!
+echo "Config Server Started with PID $CONFIGSERVER_PID"
 
 hazelcast_addresses=("127.0.0.1:5701" "127.0.0.1:5702" "127.0.0.1:5703")
 client_port=(8001 8002 8003)
-
-sleep 5
 
 for i in {0..2}
 do
@@ -35,5 +37,4 @@ do
   python3 messages-service.py &
 
 done
-
 wait

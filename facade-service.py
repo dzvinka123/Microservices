@@ -10,12 +10,7 @@ from requests.packages.urllib3.util.retry import Retry # type: ignore
 logging.basicConfig(level=logging.DEBUG)
 
 facade_service = Flask(__name__)
-
-logging_services = [
-    "http://127.0.0.1:8001/log",
-    "http://127.0.0.1:8002/log",
-    "http://127.0.0.1:8003/log"
-]
+config_service = "http://127.0.0.1:8005/config"
 
 def create_retry_session():
     session = requests.Session()
@@ -31,9 +26,15 @@ def create_retry_session():
 
 session = create_retry_session()
 
-def get_messages_service_url():
-    return os.getenv("MESSAGES_SERVICE_URL", "http://localhost:8004/message")
-
+def get_service_addresses(service_name):
+    try:
+        response = session.get(f"{config_service}/{service_name}", timeout=5)
+        if response.status_code == 200:
+            return response.json().get("addresses", [])
+    except requests.exceptions.RequestException as e:
+        logging.error(f"[Facade Service] Failed to retrieve addresses for {service_name}. Status code: {response.status_code}")
+        logging.error(f"[Facade Service] Request failed: {e}")
+        return []
 
 @facade_service.route('/send', methods=['POST'])
 def send_message():
@@ -46,57 +47,85 @@ def send_message():
     message_id = str(uuid.uuid4())
     logging.info(f"[Facade Service] Received message: {msg}, generated ID: {message_id}")
 
+    logging_services = get_service_addresses("logging-service")
+    if not logging_services:
+        logging.error("[Facade Service] Cannot get IP Address for Logging Services.")
+        return Response("Logging services not available", status=500)
+
     random.shuffle(logging_services)
+    
     for logging_service_url in logging_services:
-        try: 
-            response = session.post(logging_service_url, json={"id": message_id, "msg": msg}, timeout=5)
+        try:
+            logging.info(f"[Facade Service] Trying to send message to {logging_service_url}...")
+            response = requests.post(logging_service_url, json={"id": message_id, "msg": msg}, timeout=5)
             
-            logging.info(f"[Facade Service] Sending message to Logging Service, response: {response.status_code}")
+            logging.info(f"[Facade Service] Response from {logging_service_url}: {response.status_code}")
             
             if response.status_code == 200:
-                logging.info(f"[Facade Service] Message sent to {logging_service_url}")
+                logging.info(f"[Facade Service] Message sent successfully to {logging_service_url}")
                 return Response(status=200)
             else:
-                logging.error(f"[Facade Service] Failed to send message, status code: {response.status_code}")
-                return Response("Error sending message", status=500)
-        
-        except requests.exceptions.RequestException as e:
-            logging.error(f"[Facade Service] Request failed: {e}")
+                logging.warning(f"[Facade Service] Failed to send message, status code: {response.status_code}")
+                continue
 
-    logging.error(f"[Facade Service] All logging services are unavailable.")
+        except requests.exceptions.RequestException as e:
+            logging.error(f"[Facade Service] Failed to connect to {logging_service_url}: {e}")
+            continue
+
+    logging.error("[Facade Service] All logging services are unavailable.")
     return Response("Error sending message. All logging services are unavailable.", status=500)
+
 
 @facade_service.route('/retrieve', methods=['GET'])
 def retrieve_messages():
     """
     Handles GET requests from the client.
     Fetches logs from the logging service and a static message from the messages service.
+    If logging services are unavailable, tries the next one. 
+    Returns an error if none are available.
     """
     logging.info("[Facade Service] Retrieving messages from Logging and Messages Services...")
 
-    available_services = logging_services[:]
-    while available_services:
-        logging_service_url = random.choice(available_services)
-        logging_response = session.get(logging_service_url)
-        message_url = get_messages_service_url()
-        message_response = requests.get(message_url)
+    logging_services = get_service_addresses("logging-service")
+    if not logging_services:
+        logging.error("[Facade Service] Cannot get IP Address for Logging Services.")
+        return Response(status=500)
+    
+    random.shuffle(logging_services)
 
-        if logging_response.status_code != 200:
-            logging.error(f"[Facade Service] Failed to retrieve messages from {logging_service_url}. Status code: {logging_response.status_code}")
-            available_services.remove(logging_service_url)
-        elif message_response.status_code != 200:
-            logging.error(f"[Facade Service] Failed to retrieve messages from {message_url}. Status code: {message_response.status_code}")
-        else:
+    message_url = get_service_addresses("messages-service")
+    if not message_url:
+        logging.error("[Facade Service] Cannot get IP Address for Messages Services.")
+        return Response(status=500)
+
+    for logging_service_url in logging_services:
+        try:
+            logging_response = requests.get(logging_service_url, timeout=5)
+            if logging_response.status_code != 200:
+                logging.error(f"[Facade Service] Failed to retrieve messages from {logging_service_url}. Status code: {logging_response.status_code}")
+                continue
+
+            message_response = requests.get(message_url[0], timeout=5)
+            if message_response.status_code != 200:
+                logging.error(f"[Facade Service] Failed to retrieve message from {message_url[0]}. Status code: {message_response.status_code}")
+                return Response("Error retrieving message from Messages Service.", 500)
+
             concatenated_response = (
                 "Logging Service Response: " + logging_response.text + "; "
                 "Messages Service Response: " + message_response.text
             )
             logging.info("[Facade Service] Successfully retrieved logs and message service response.")
             return concatenated_response
+        
+        except requests.exceptions.RequestException as e:
+            logging.error(f"[Facade Service] Request failed to {logging_service_url}: {e}")
+            continue
 
     logging.error("[Facade Service] All logging services are unavailable.")
-    return "Error retrieving messages. All logging services are unavailable.", 500
+    return Response("Error retrieving messages. All logging services are unavailable.", 500)
+
 
 if __name__ == '__main__':
     logging.info("[Facade Service] Starting on port 8000...")
     facade_service.run(port=8000)
+

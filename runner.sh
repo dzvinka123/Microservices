@@ -6,7 +6,7 @@ FACADESERVICE_PID=$!
 echo "Facade service started with PID $FACADESERVICE_PID"
 
 echo "Starting 3 Hazelcast nodes..."
-HAZELCAST_DIR="/Users/dzvina/Desktop/hazelcast-5.5.0"
+HAZELCAST_DIR="/Users/dzvina/Desktop/hazelcast-5.5.0" #You need to change the Hazelcast directory
 
 $HAZELCAST_DIR/bin/hz start &
 echo "Hazelcast node 1 started."
@@ -27,8 +27,8 @@ python3 config-server.py $PATHCONRIGFILE &
 CONFIGSERVER_PID=$!
 echo "Config Server Started with PID $CONFIGSERVER_PID"
 
-hazelcast_addresses=("127.0.0.1:5701" "127.0.0.1:5702" "127.0.0.1:5703")
-client_port=(8001 8002 8003)
+hazelcast_addresses=("127.0.0.1:5701" "127.0.0.1:5702" "127.0.0.1:5703") #You need to change addresses hazelcast node
+client_port=(8001 8002 8003) #You need to change port on which you run our logging service instances
 
 for i in {0..2}
 do

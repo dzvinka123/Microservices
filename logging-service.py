@@ -54,3 +54,4 @@ def get_logs():
 if __name__ == '__main__':
     logging.info(f"Logging Service starting on port {port}...")
     logging_service.run(port=port)
+

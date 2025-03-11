@@ -1,0 +1,75 @@
+@FacadeUrl = http://localhost:8000
+
+GET {{FacadeUrl}}/retrieve
+Accept: application/json
+
+
+POST {{FacadeUrl}}/send
+Content-Type: application/json
+
+{
+    "msg": "MSG_1"
+}
+
+POST {{FacadeUrl}}/send
+Content-Type: application/json
+
+{
+    "msg": "MSG_2"
+}
+
+POST {{FacadeUrl}}/send
+Content-Type: application/json
+
+{
+    "msg": "MSG_3"
+}
+
+POST {{FacadeUrl}}/send
+Content-Type: application/json
+
+{
+    "msg": "MSG_4"
+}
+
+POST {{FacadeUrl}}/send
+Content-Type: application/json
+
+{
+    "msg": "MSG_5"
+}
+
+POST {{FacadeUrl}}/send
+Content-Type: application/json
+
+{
+    "msg": "MSG_6"
+}
+
+POST {{FacadeUrl}}/send
+Content-Type: application/json
+
+{
+    "msg": "MSG_7"
+}
+
+POST {{FacadeUrl}}/send
+Content-Type: application/json
+
+{
+    "msg": "MSG_8"
+}
+
+POST {{FacadeUrl}}/send
+Content-Type: application/json
+
+{
+    "msg": "MSG_9"
+}
+
+POST {{FacadeUrl}}/send
+Content-Type: application/json
+
+{
+    "msg": "MSG_10"
+}

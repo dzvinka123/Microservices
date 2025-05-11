@@ -1,0 +1,15 @@
+{
+    "logging-service": {
+        "addresses": [
+            "http://127.0.0.1:8001/log",
+            "http://127.0.0.1:8002/log",
+            "http://127.0.0.1:8003/log"
+        ]
+    },
+    "messages-service": {
+        "addresses": [
+            "http://127.0.0.1:8007/message",
+            "http://127.0.0.1:8008/message"
+        ]
+    }
+}
